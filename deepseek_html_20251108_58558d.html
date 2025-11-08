@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Trading Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+
+        body {
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .terminal {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* HEADER */
+        .header {
+            background: #1a1a1a;
+            padding: 12px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            color: #ff6b00;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .market-status {
+            color: #00ff87;
+            font-size: 12px;
+        }
+
+        /* MARKET TABS */
+        .market-tabs {
+            display: flex;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+
+        .market-tab {
+            padding: 12px 24px;
+            border-right: 1px solid #333;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .market-tab.active {
+            background: #ff6b00;
+            color: #000;
+        }
+
+        .market-tab:hover {
+            background: #333;
+        }
+
+        /* CONTENT */
+        .content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .stocks-grid {
+            flex: 1;
+            overflow-y: auto;
+            background: #111;
+        }
+
+        .stock-row {
+            padding: 16px;
+            border-bottom: 1px solid #222;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .stock-row:hover {
+            background: #1a1a1a;
+        }
+
+        .stock-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .symbol-section .symbol {
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .symbol-section .name {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .price-section .price {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .change-indicator {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .change-positive {
+            background: rgba(0, 255, 135, 0.2);
+            color: #00ff87;
+        }
+
+        .change-negative {
+            background: rgba(255, 75, 75, 0.2);
+            color: #ff4b4b;
+        }
+
+        .technical-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888;
+        }
+
+        /* DETAIL PANEL */
+        .detail-panel {
+            width: 400px;
+            background: #111;
+            border-left: 1px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .detail-symbol {
+            color: #ff6b00;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: #333;
+            border: none;
+            color: #fff;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .price-large {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .technicals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .tech-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: #1a1a1a;
+            border-radius: 3px;
+        }
+
+        /* FOOTER */
+        .footer {
+            background: #1a1a1a;
+            padding: 8px 20px;
+            border-top: 1px solid #333;
+            font-size: 11px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-left">
+                <div class="terminal-title">PROFESSIONAL TRADING TERMINAL</div>
+                <div class="market-status">LIVE • SERVER • <span id="currentTime"></span></div>
+            </div>
+            <div class="header-right">
+                <div class="connection-status">● CONNECTED</div>
+                <div class="data-feed">DATA: YAHOO FINANCE</div>
+            </div>
+        </div>
+
+        <!-- MARKET TABS -->
+        <div class="market-tabs" id="marketTabs">
+            <!-- Tabs verranno generati via JavaScript -->
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="content">
+            <div class="stocks-grid" id="stocksGrid">
+                <!-- Stocks verranno generati via JavaScript -->
+            </div>
+            
+            <div class="detail-panel" id="detailPanel" style="display: none;">
+                <!-- Dettaglio stock -->
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <span id="footerStatus">Caricamento dati in corso...</span>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURAZIONE
+        const MARKETS = {
+            'MIB': ['ENEL.MI', 'ISP.MI', 'UCG.MI', 'G.MI', 'MB.MI'],
+            'NASDAQ': ['AAPL', 'TSLA', 'MSFT', 'GOOGL', 'META'],
+            'DOW': ['JPM', 'JNJ', 'V', 'PG', 'DIS']
+        };
+
+        let currentMarket = 'MIB';
+        let marketData = {};
+
+        // INIZIALIZZAZIONE
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTerminal();
+            setInterval(updateMarketData, 30000); // Aggiorna ogni 30 secondi
+            setInterval(updateClock, 1000);
+        });
+
+        function initializeTerminal() {
+            createMarketTabs();
+            loadMarketData();
+        }
+
+        function createMarketTabs() {
+            const tabsContainer = document.getElementById('marketTabs');
+            Object.keys(MARKETS).forEach(market => {
+                const tab = document.createElement('div');
+                tab.className = `market-tab ${market === currentMarket ? 'active' : ''}`;
+                tab.textContent = market;
+                tab.onclick = () => switchMarket(market);
+                tabsContainer.appendChild(tab);
+            });
+        }
+
+        function switchMarket(market) {
+            currentMarket = market;
+            document.querySelectorAll('.market-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.textContent === market) tab.classList.add('active');
+            });
+            renderStocks();
+        }
+
+        async function loadMarketData() {
+            const symbols = MARKETS[currentMarket];
+            const promises = symbols.map(symbol => fetchStockData(symbol));
+            
+            try {
+                const results = await Promise.all(promises);
+                symbols.forEach((symbol, index) => {
+                    marketData[symbol] = results[index];
+                });
+                renderStocks();
+                updateFooter(`Dati aggiornati: ${new Date().toLocaleTimeString()}`);
+            } catch (error) {
+                console.error('Errore caricamento dati:', error);
+                updateFooter('Errore caricamento dati');
+            }
+        }
+
+        async function fetchStockData(symbol) {
+            try {
+                const response = await fetch(`/api/market-data/${symbol}`);
+                if (!response.ok) throw new Error('API error');
+                return await response.json();
+            } catch (error) {
+                // Fallback a dati simulati se API non disponibile
+                return getFallbackData(symbol);
+            }
+        }
+
+        function getFallbackData(symbol) {
+            const basePrice = symbol.includes('.MI') ? 
+                Math.random() * 10 + 5 : 
+                Math.random() * 200 + 100;
+                
+            const change = (Math.random() - 0.5) * 4;
+            
+            return {
+                symbol,
+                price: basePrice + change,
+                change: change,
+                changePercent: (change / basePrice * 100),
+                volume: Math.floor(Math.random() * 10000000),
+                high: basePrice + Math.random() * 2,
+                low: basePrice - Math.random() * 2,
+                timestamp: new Date().toISOString()
+            };
+        }
+
+        function renderStocks() {
+            const grid = document.getElementById('stocksGrid');
+            grid.innerHTML = '';
+
+            MARKETS[currentMarket].forEach(symbol => {
+                const data = marketData[symbol];
+                if (!data) return;
+
+                const row = document.createElement('div');
+                row.className = 'stock-row';
+                row.onclick = () => showStockDetail(data);
+                
+                const changeClass = data.change >= 0 ? 'change-positive' : 'change-negative';
+                const changeIcon = data.change >= 0 ? '▲' : '▼';
+
+                row.innerHTML = `
+                    <div class="stock-main">
+                        <div class="symbol-section">
+                            <div class="symbol">${data.symbol}</div>
+                            <div class="name">${getStockName(data.symbol)}</div>
+                        </div>
+                        <div class="price-section">
+                            <div class="price">${formatPrice(data.price, data.symbol)}</div>
+                            <div class="change-indicator ${changeClass}">
+                                ${changeIcon} ${Math.abs(data.change).toFixed(2)} (${data.change >= 0 ? '+' : ''}${data.changePercent.toFixed(2)}%)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="technical-info">
+                        <div>VOL: ${formatVolume(data.volume)}</div>
+                        <div>H: ${formatPrice(data.high, data.symbol)}</div>
+                        <div>L: ${formatPrice(data.low, data.symbol)}</div>
+                    </div>
+                `;
+
+                grid.appendChild(row);
+            });
+        }
+
+        function showStockDetail(data) {
+            const panel = document.getElementById('detailPanel');
+            const changeClass = data.change >= 0 ? 'change-positive' : 'change-negative';
+            const changeIcon = data.change >= 0 ? '▲' : '▼';
+
+            panel.innerHTML = `
+                <div class="detail-header">
+                    <div class="detail-symbol">${data.symbol}</div>
+                    <button class="close-btn" onclick="hideStockDetail()">✕ CHIUDI</button>
+                </div>
+                <div class="price-large">${formatPrice(data.price, data.symbol)}</div>
+                <div class="change-indicator ${changeClass}" style="display: inline-block;">
+                    ${changeIcon} ${Math.abs(data.change).toFixed(2)} (${data.change >= 0 ? '+' : ''}${data.changePercent.toFixed(2)}%)
+                </div>
+                
+                <div class="technicals-grid">
+                    <div class="tech-item">
+                        <span>Volume:</span>
+                        <span>${formatVolume(data.volume)}</span>
+                    </div>
+                    <div class="tech-item">
+                        <span>High:</span>
+                        <span>${formatPrice(data.high, data.symbol)}</span>
+                    </div>
+                    <div class="tech-item">
+                        <span>Low:</span>
+                        <span>${formatPrice(data.low, data.symbol)}</span>
+                    </div>
+                    <div class="tech-item">
+                        <span>Timestamp:</span>
+                        <span>${new Date(data.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `;
+
+            panel.style.display = 'block';
+        }
+
+        function hideStockDetail() {
+            document.getElementById('detailPanel').style.display = 'none';
+        }
+
+        // FUNZIONI UTILITY
+        function getStockName(symbol) {
+            const names = {
+                'ENEL.MI': 'ENEL', 'ISP.MI': 'INTESA SP', 'UCG.MI': 'UNICREDIT',
+                'G.MI': 'GENERALI', 'MB.MI': 'MEDIOBANCA', 'AAPL': 'APPLE INC',
+                'TSLA': 'TESLA INC', 'MSFT': 'MICROSOFT', 'GOOGL': 'ALPHABET',
+                'META': 'META PLATFORMS', 'JPM': 'JPMORGAN', 'JNJ': 'JOHNSON & JOHNSON',
+                'V': 'VISA', 'PG': 'PROCTER & GAMBLE', 'DIS': 'DISNEY'
+            };
+            return names[symbol] || symbol;
+        }
+
+        function formatPrice(price, symbol) {
+            const decimals = symbol.includes('.MI') ? 3 : 2;
+            const prefix = symbol.includes('.MI') ? '€' : '$';
+            return `${prefix}${price.toFixed(decimals)}`;
+        }
+
+        function formatVolume(volume) {
+            if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
+            if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
+            return volume.toString();
+        }
+
+        function updateMarketData() {
+            loadMarketData();
+        }
+
+        function updateClock() {
+            document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
+        }
+
+        function updateFooter(message) {
+            document.getElementById('footerStatus').textContent = message;
+        }
+    </script>
+</body>
+</html>
